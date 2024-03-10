@@ -1,3 +1,4 @@
 .idea
 *-backup
-*.yaml
+conf.yaml
+multi.yaml
