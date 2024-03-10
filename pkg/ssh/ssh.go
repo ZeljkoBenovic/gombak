@@ -2,7 +2,6 @@ package ssh
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"path"
@@ -100,11 +99,9 @@ func (s *SSH) Download(downloadFrom, downloadTo string) error {
 	}
 	defer remote.Close()
 
-	if _, err = io.Copy(local, remote); err != nil {
-		return err
-	}
+	_, err = remote.WriteTo(local)
 
-	return local.Sync()
+	return err
 }
 
 func (s *SSH) Delete(fileName string) error {

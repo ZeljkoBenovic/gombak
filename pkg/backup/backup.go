@@ -17,9 +17,11 @@ type Backup struct {
 	backupDir string
 	cl        *sshclient.SSH
 	log       *logger.Logger
+
+	host string
 }
 
-func New(host, port, user, pass string, log *logger.Logger) (Backup, error) {
+func New(host, port, user, pass string, log *logger.Logger) (*Backup, error) {
 	cl, err := sshclient.NewSSH(
 		user,
 		host,
@@ -29,10 +31,10 @@ func New(host, port, user, pass string, log *logger.Logger) (Backup, error) {
 		sshclient.WithInsecureKeyExchange(),
 	)
 	if err != nil {
-		return Backup{}, fmt.Errorf("could not create ssh client: %w", err)
+		return nil, fmt.Errorf("could not create ssh client: %w", err)
 	}
 
-	return Backup{
+	return &Backup{
 		cl:  cl,
 		log: log,
 	}, nil
@@ -42,14 +44,12 @@ func (b *Backup) Close() error {
 	return b.cl.Close()
 }
 
-func (b *Backup) RunBackup(bckDir string) error {
-	b.backupDir = bckDir
-
+func (b *Backup) GetRouterIdentity() (string, error) {
 	b.log.Debug("Fetching system identity")
 
 	ident, err := b.cl.Run("/system identity print")
 	if err != nil {
-		return fmt.Errorf("could not get system identity: %w", err)
+		return "", fmt.Errorf("could not get system identity: %w", err)
 	}
 
 	var host string
@@ -62,11 +62,19 @@ func (b *Backup) RunBackup(bckDir string) error {
 
 	host = strings.ReplaceAll(host, ":", "")
 
-	b.log.Info("Running backup", "host", host)
+	b.host = host
+
+	return host, nil
+}
+
+func (b *Backup) RunBackup(bckDir string) error {
+	b.backupDir = bckDir
+
+	b.log.Info("Running backup", "host", b.host)
 
 	b.log.Debug("Exporting file on the router", "cmd", "/export file=ssh-backup")
 
-	_, err = b.cl.Run(fmt.Sprintf("/export file=ssh-backup"))
+	_, err := b.cl.Run(fmt.Sprintf("/export file=ssh-backup"))
 	if err != nil {
 		return fmt.Errorf("could not run export: %w", err)
 	}
@@ -77,53 +85,57 @@ func (b *Backup) RunBackup(bckDir string) error {
 		return fmt.Errorf("could not run system backup: %w", err)
 	}
 
-	b.log.Info("Downloading backup files", "host", host)
+	b.log.Info("Downloading backup files", "host", b.host)
 
 	timeNow := time.Now().Format(time.DateOnly)
 
-	b.log.Debug("Downloading file", "name", "/ssh-backup.rsc")
+	b.log.Debug("Downloading file", "name", "/ssh-backup.rsc", "host", b.host)
 
 	if err = b.cl.Download(
 		"/ssh-backup.rsc",
-		path.Join(bckDir, fmt.Sprintf("%s-%s.rsc", host, timeNow)),
+		path.Join(bckDir, fmt.Sprintf("%s-%s.rsc", b.host, timeNow)),
 	); err != nil {
 		return fmt.Errorf("could not download ssh-bakup.rsc: %w", err)
 	}
 
-	b.log.Debug("Downloading file", "name", "/ssh-backup.backup")
+	b.log.Debug("Downloading file", "name", "/ssh-backup.backup", "host", b.host)
 
 	if err = b.cl.Download(
 		"/ssh-backup.backup",
-		path.Join(bckDir, fmt.Sprintf("%s-%s.backup", host, timeNow)),
+		path.Join(bckDir, fmt.Sprintf("%s-%s.backup", b.host, timeNow)),
 	); err != nil {
-		return fmt.Errorf("could not download ssh-bakup.backup: %w", err)
+		return fmt.Errorf("could not download ssh-backup.backup: %w", err)
 	}
 
-	b.log.Info("Backup files downloaded")
+	b.log.Info("Backup files downloaded", "host", b.host)
 
-	b.log.Info("Deleting temp backup files")
+	b.log.Info("Backup complete", "host", b.host)
 
-	if err = b.cl.Delete("/ssh-backup.rsc"); err != nil {
+	return nil
+}
+
+func (b *Backup) DeleteTempFiles() error {
+	b.log.Info("Deleting temp backup files", "host", b.host)
+
+	if err := b.cl.Delete("/ssh-backup.rsc"); err != nil {
 		b.log.Error(
 			"Backup file on the router could not be deleted",
 			"err", err.Error(),
 			"file_name", "/ssh-backup.rsc",
-			"host", host,
+			"host", b.host,
 		)
 	}
 
-	if err = b.cl.Delete("/ssh-backup.backup"); err != nil {
+	if err := b.cl.Delete("/ssh-backup.backup"); err != nil {
 		b.log.Error(
 			"Backup file on the router could not be deleted",
 			"err", err.Error(),
 			"file_name", "/ssh-backup.backup",
-			"host", host,
+			"host", b.host,
 		)
 	}
 
-	b.log.Info("Temp backup files deleted")
-
-	b.log.Info("Backup complete", "host", host)
+	b.log.Info("Temp backup files deleted", "host", b.host)
 
 	return nil
 }

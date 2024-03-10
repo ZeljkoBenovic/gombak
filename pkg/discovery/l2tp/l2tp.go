@@ -21,6 +21,7 @@ type L2TP struct {
 
 	log *logger.Logger
 	wg  *sync.WaitGroup
+	mut *sync.Mutex
 }
 
 type Opts func(*L2TP)
@@ -50,6 +51,7 @@ func NewL2TP(hosts []string, apiPort, apiSSLPort, user, pass string, log *logger
 
 		log: log,
 		wg:  &sync.WaitGroup{},
+		mut: &sync.Mutex{},
 	}
 
 	for _, f := range opts {
@@ -72,14 +74,16 @@ func (l *L2TP) GetIPAddresses() ([]string, error) {
 		l.log.Info("Discovering ips on host", "host", h)
 
 		go func() {
+			defer l.wg.Done()
+
 			ips, err := l.fetchRouterIPs(h)
 			if err != nil {
 				l.log.Error("Could not discover ips", "err", err.Error())
 			}
 
+			l.mut.Lock()
 			resp = append(resp, ips...)
-
-			l.wg.Done()
+			l.mut.Unlock()
 		}()
 	}
 

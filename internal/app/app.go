@@ -14,13 +14,18 @@ type App struct {
 	conf config.Config
 	log  *logger.Logger
 	wg   *sync.WaitGroup
+	mu   *sync.RWMutex
+
+	routersDone map[string]struct{}
 }
 
 func NewApp(conf config.Config, log *logger.Logger) App {
 	return App{
-		conf: conf,
-		log:  log,
-		wg:   &sync.WaitGroup{},
+		conf:        conf,
+		log:         log,
+		wg:          &sync.WaitGroup{},
+		mu:          &sync.RWMutex{},
+		routersDone: make(map[string]struct{}, 0),
 	}
 }
 
@@ -106,7 +111,7 @@ func (a App) AppModeFactory() func() error {
 				go func() {
 					defer a.wg.Done()
 
-					if err = a.singleRouterBackup(
+					if err := a.singleRouterBackup(
 						mt,
 						a.conf.Discovery.SSHPort,
 						a.conf.Discovery.Username,
@@ -145,5 +150,26 @@ func (a App) singleRouterBackup(host, port, user, pass string) error {
 
 	defer bck.Close()
 
-	return bck.RunBackup(a.conf.BackupFolder)
+	routerName, err := bck.GetRouterIdentity()
+	if err != nil {
+		return err
+	}
+
+	a.mu.RLock()
+	// skip if the router is already done
+	if _, ok := a.routersDone[routerName]; ok {
+		a.mu.RUnlock()
+		return nil
+	}
+	a.mu.RUnlock()
+
+	a.mu.Lock()
+	a.routersDone[routerName] = struct{}{}
+	a.mu.Unlock()
+
+	if err := bck.RunBackup(a.conf.BackupFolder); err != nil {
+		return err
+	}
+
+	return bck.DeleteTempFiles()
 }
