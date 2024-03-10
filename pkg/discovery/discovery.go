@@ -8,6 +8,7 @@ import (
 )
 
 type Discovery interface {
+	// GetIPAddresses returns the list of discovered ip addresses
 	GetIPAddresses() ([]string, error)
 }
 
@@ -30,6 +31,7 @@ const (
 	L2TP Type = "l2tp"
 )
 
+// Discoverers is a map of available discovery mechanisms
 var Discoverers = map[Type]DiscConfigFn{
 	L2TP: func(c *Config) (Discovery, error) {
 		if c.Hosts == nil {

@@ -18,7 +18,8 @@ type Backup struct {
 	cl        *sshclient.SSH
 	log       *logger.Logger
 
-	host string
+	host   string
+	hostIP string
 }
 
 func New(host, port, user, pass string, log *logger.Logger) (*Backup, error) {
@@ -35,8 +36,9 @@ func New(host, port, user, pass string, log *logger.Logger) (*Backup, error) {
 	}
 
 	return &Backup{
-		cl:  cl,
-		log: log,
+		cl:     cl,
+		log:    log,
+		hostIP: host,
 	}, nil
 }
 
@@ -45,14 +47,34 @@ func (b *Backup) Close() error {
 }
 
 func (b *Backup) GetRouterIdentity() (string, error) {
+	var (
+		host  string
+		ident string
+		err   error
+	)
 	b.log.Debug("Fetching system identity")
 
-	ident, err := b.cl.Run("/system identity print")
-	if err != nil {
-		return "", fmt.Errorf("could not get system identity: %w", err)
-	}
+	timeout := time.After(time.Minute)
+identLoop:
+	for {
+		select {
+		case <-timeout:
+			return "", fmt.Errorf("empty system identity for %s", b.hostIP)
+		default:
+			ident, err = b.cl.Run("/system identity print")
+			if err != nil {
+				return "", fmt.Errorf("could not get system identity: %w", err)
+			}
 
-	var host string
+			if ident == "" {
+				b.log.Error("System identity empty - retrying", "host", b.hostIP)
+				time.Sleep(time.Second)
+				continue
+			}
+
+			break identLoop
+		}
+	}
 
 	if len(ident) > 9 {
 		host = strings.TrimSpace(strings.ReplaceAll(ident[8:], " ", "-"))

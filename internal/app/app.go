@@ -14,21 +14,43 @@ type App struct {
 	conf config.Config
 	log  *logger.Logger
 	wg   *sync.WaitGroup
-	mu   *sync.RWMutex
 
-	routersDone map[string]struct{}
+	routersDone *routersDone
+}
+
+type routersDone struct {
+	done map[string]struct{}
+	mut  *sync.RWMutex
+}
+
+func (r *routersDone) isDone(routerName string) bool {
+	r.mut.RLock()
+	if _, ok := r.done[routerName]; ok {
+		r.mut.RUnlock()
+		return true
+	}
+	r.mut.RUnlock()
+
+	r.mut.Lock()
+	r.done[routerName] = struct{}{}
+	r.mut.Unlock()
+
+	return false
 }
 
 func NewApp(conf config.Config, log *logger.Logger) App {
 	return App{
-		conf:        conf,
-		log:         log,
-		wg:          &sync.WaitGroup{},
-		mu:          &sync.RWMutex{},
-		routersDone: make(map[string]struct{}, 0),
+		conf: conf,
+		log:  log,
+		wg:   &sync.WaitGroup{},
+		routersDone: &routersDone{
+			done: make(map[string]struct{}),
+			mut:  &sync.RWMutex{},
+		},
 	}
 }
 
+// AppModeFactory returns a worker function based on the configured mode
 func (a App) AppModeFactory() func() error {
 	switch a.conf.Mode {
 	case config.SingleRouter:
@@ -155,17 +177,10 @@ func (a App) singleRouterBackup(host, port, user, pass string) error {
 		return err
 	}
 
-	a.mu.RLock()
-	// skip if the router is already done
-	if _, ok := a.routersDone[routerName]; ok {
-		a.mu.RUnlock()
+	// Skip work if already done
+	if a.routersDone.isDone(routerName) {
 		return nil
 	}
-	a.mu.RUnlock()
-
-	a.mu.Lock()
-	a.routersDone[routerName] = struct{}{}
-	a.mu.Unlock()
 
 	if err := bck.RunBackup(a.conf.BackupFolder); err != nil {
 		return err

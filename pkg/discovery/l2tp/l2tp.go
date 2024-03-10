@@ -21,7 +21,19 @@ type L2TP struct {
 
 	log *logger.Logger
 	wg  *sync.WaitGroup
-	mut *sync.Mutex
+
+	discoveredHosts *discoveredHosts
+}
+
+type discoveredHosts struct {
+	mut   *sync.Mutex
+	hosts []string
+}
+
+func (d *discoveredHosts) add(hosts []string) {
+	d.mut.Lock()
+	d.hosts = append(d.hosts, hosts...)
+	d.mut.Unlock()
 }
 
 type Opts func(*L2TP)
@@ -51,7 +63,10 @@ func NewL2TP(hosts []string, apiPort, apiSSLPort, user, pass string, log *logger
 
 		log: log,
 		wg:  &sync.WaitGroup{},
-		mut: &sync.Mutex{},
+		discoveredHosts: &discoveredHosts{
+			mut:   &sync.Mutex{},
+			hosts: make([]string, 0),
+		},
 	}
 
 	for _, f := range opts {
@@ -62,10 +77,6 @@ func NewL2TP(hosts []string, apiPort, apiSSLPort, user, pass string, log *logger
 }
 
 func (l *L2TP) GetIPAddresses() ([]string, error) {
-	var (
-		resp []string
-	)
-
 	for _, h := range l.hosts {
 		h := h
 
@@ -81,17 +92,15 @@ func (l *L2TP) GetIPAddresses() ([]string, error) {
 				l.log.Error("Could not discover ips", "err", err.Error())
 			}
 
-			l.mut.Lock()
-			resp = append(resp, ips...)
-			l.mut.Unlock()
+			l.discoveredHosts.add(ips)
 		}()
 	}
 
 	l.wg.Wait()
 
-	l.log.Info("Discovery complete", "total", len(resp))
+	l.log.Info("Discovery complete", "total", len(l.discoveredHosts.hosts))
 
-	return resp, nil
+	return l.discoveredHosts.hosts, nil
 }
 
 func (l *L2TP) fetchRouterIPs(host string) ([]string, error) {
