@@ -30,36 +30,36 @@ var AvailableModes = map[string]Mode{
 }
 
 type Config struct {
-	Mode                Mode         `yaml:"mode"`
-	BackupFolder        string       `yaml:"backup-dir"`
-	BackupRetentionDays int          `yaml:"retention-days"`
-	Single              RouterInfo   `yaml:"single"`
-	Discovery           Discovery    `yaml:"discovery"`
-	Multi               []RouterInfo `yaml:"multi-router"`
+	Mode                Mode         `koanf:"mode"`
+	BackupFolder        string       `koanf:"backup-dir"`
+	BackupRetentionDays int          `koanf:"retention-days"`
+	Single              RouterInfo   `koanf:"single"`
+	Discovery           Discovery    `koanf:"discovery"`
+	Multi               []RouterInfo `koanf:"multi-router"`
 
-	Logger Log `yaml:"log"`
+	Logger Log `koanf:"log"`
 }
 
 type RouterInfo struct {
-	Host     string `yaml:"host"`
-	Port     string `yaml:"ssh-port"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Host     string `koanf:"host"`
+	Port     string `koanf:"ssh-port"`
+	Username string `koanf:"username"`
+	Password string `koanf:"password"`
 }
 
 type Discovery struct {
-	Hosts      []string `yaml:"hosts"`
-	Username   string   `yaml:"username"`
-	Password   string   `yaml:"password"`
-	APIPort    string   `yaml:"api-port"`
-	APISSLPort string   `yaml:"api-ssl-port"`
-	SSHPort    string   `yaml:"ssh-port"`
+	Hosts      []string `koanf:"hosts"`
+	Username   string   `koanf:"username"`
+	Password   string   `koanf:"password"`
+	APIPort    string   `koanf:"api-port"`
+	APISSLPort string   `koanf:"api-ssl-port"`
+	SSHPort    string   `konaf:"ssh-port"`
 }
 
 type Log struct {
-	JSONOutput bool   `yaml:"json"`
-	File       string `yaml:"file"`
-	Level      string `yaml:"level"`
+	JSONOutput bool   `koanf:"json"`
+	File       string `koanf:"file"`
+	Level      string `koanf:"level"`
 }
 
 var (

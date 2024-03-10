@@ -67,7 +67,7 @@ identLoop:
 			}
 
 			if ident == "" {
-				b.log.Error("System identity empty - retrying", "host", b.hostIP)
+				b.log.Debug("System identity empty - retrying", "host", b.hostIP)
 				time.Sleep(time.Second)
 				continue
 			}
