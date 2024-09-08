@@ -9,7 +9,7 @@ import (
 
 type Discovery interface {
 	// GetIPAddresses returns the list of discovered ip addresses
-	GetIPAddresses() ([]string, error)
+	GetIPAddresses() (map[string]string, error)
 }
 
 type Config struct {

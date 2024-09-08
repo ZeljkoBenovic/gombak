@@ -125,21 +125,22 @@ func (a App) AppModeFactory() func() error {
 				return err
 			}
 
-			for _, mt := range discRouters {
+			for name, ip := range discRouters {
 				a.wg.Add(1)
 
-				mt := mt
+				ip := ip
+				name := name
 
 				go func() {
 					defer a.wg.Done()
 
 					if err := a.singleRouterBackup(
-						mt,
+						ip,
 						a.conf.Discovery.SSHPort,
 						a.conf.Discovery.Username,
 						a.conf.Discovery.Password,
 					); err != nil {
-						a.log.Error("Could not perform backup", "err", err.Error(), "host", mt)
+						a.log.Error("Could not perform backup", "err", err.Error(), "host", name, "ip", ip)
 						return
 					}
 				}()

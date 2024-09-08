@@ -27,12 +27,12 @@ type L2TP struct {
 
 type discoveredHosts struct {
 	mut   *sync.Mutex
-	hosts []string
+	hosts map[string]string
 }
 
-func (d *discoveredHosts) add(hosts []string) {
+func (d *discoveredHosts) add(hosts map[string]string) {
 	d.mut.Lock()
-	d.hosts = append(d.hosts, hosts...)
+	d.hosts = hosts
 	d.mut.Unlock()
 }
 
@@ -65,7 +65,7 @@ func NewL2TP(hosts []string, apiPort, apiSSLPort, user, pass string, log *logger
 		wg:  &sync.WaitGroup{},
 		discoveredHosts: &discoveredHosts{
 			mut:   &sync.Mutex{},
-			hosts: make([]string, 0),
+			hosts: make(map[string]string),
 		},
 	}
 
@@ -76,7 +76,8 @@ func NewL2TP(hosts []string, apiPort, apiSSLPort, user, pass string, log *logger
 	return l
 }
 
-func (l *L2TP) GetIPAddresses() ([]string, error) {
+// GetIPAddresses returns a list of host--interface name and its ip address
+func (l *L2TP) GetIPAddresses() (map[string]string, error) {
 	for _, h := range l.hosts {
 		h := h
 
@@ -103,10 +104,10 @@ func (l *L2TP) GetIPAddresses() ([]string, error) {
 	return l.discoveredHosts.hosts, nil
 }
 
-func (l *L2TP) fetchRouterIPs(host string) ([]string, error) {
+func (l *L2TP) fetchRouterIPs(host string) (map[string]string, error) {
 	var (
 		tunnelNames []string
-		remoteIPs   []string
+		remoteIPs   = make(map[string]string)
 		cl          *routeros.Client
 		err         error
 	)
@@ -150,7 +151,7 @@ func (l *L2TP) fetchRouterIPs(host string) ([]string, error) {
 		}
 
 		for _, r := range res.Re {
-			remoteIPs = append(remoteIPs, r.Map["network"])
+			remoteIPs[fmt.Sprintf("%s--%s", host, tun)] = r.Map["network"]
 		}
 	}
 
