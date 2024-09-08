@@ -91,7 +91,7 @@ func NewConfig() Config {
 	f.StringVarP(&confFile, "config", "c", "", "configuration yaml file")
 	f.StringVarP(&c.BackupFolder, "backup-dir", "b", "mt-backup", "mikrotik backup export directory")
 	f.StringVarP(&mode, "mode", "m", "single", "mode of operation")
-	f.IntVarP(&c.BackupRetentionDays, "retention-days", "r", 5, "days of retention")
+	f.IntVarP(&c.BackupRetentionDays, "retention-days", "r", 30, "days of retention")
 
 	f.StringVarP(&c.Single.Host, "single.host", "", "", "the ip address of the router")
 	f.StringVarP(&c.Single.Port, "single.ssh-port", "", "22", "the ssh port of the router")

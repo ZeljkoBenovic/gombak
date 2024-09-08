@@ -3,8 +3,8 @@ module github.com/ZeljkoBenovic/gombak
 go 1.21.4
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/go-routeros/routeros v0.0.0-20210123142807-2a44d57c6730
+	github.com/kardianos/service v1.2.2
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
