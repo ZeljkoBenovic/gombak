@@ -76,16 +76,23 @@ It is usually done via RADIUS server or similar solution.
 
 Use the config file with `gombak -c config.yaml`
 
+## System service
+Gombak can be set to run as a system service using the provided CLI commands.     
+Once the `gombak` binary and its configuration YAML file is set in place, system service can be interacted with:
+* `gombak install -c <absolute_path_to_the_config_file>` - install and run the `gombak` system service
+* `gombak uninstall` - uninstall `gombak` system service
+
 ## Flags
 Check which flags are available with `gombak -h`
 ```
 -b, --backup-dir string        mikrotik backup export directory (default "mt-backup")
+-r, --backup-retention-days    days of backup file retention (default 30)
+    --backup-frequency-days    backup frequency in days (default 5)
 -c, --config string            configuration yaml file
     --log.file string          write logs to the specified file
     --log.json                 output logs in json format
     --log.level string         define log level (default "info")
 -m, --mode string              mode of operation (default "single")
--r, --retention-days int       days of retention (default 5)
     --single.host string       the ip address of the router
     --single.pass string       the password for the username
     --single.ssh-port string   the ssh port of the router (default "22")
@@ -94,5 +101,4 @@ Check which flags are available with `gombak -h`
 
 ## TODO
 * Email report
-* CLI command to set up a system service
 * More discovery modes 
