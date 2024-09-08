@@ -32,12 +32,15 @@ var AvailableModes = map[string]Mode{
 type Config struct {
 	Mode                Mode         `koanf:"mode"`
 	BackupFolder        string       `koanf:"backup-dir"`
-	BackupRetentionDays int          `koanf:"retention-days"`
+	BackupRetentionDays int          `koanf:"backup-retention-days"`
+	BackupFrequencyDays int          `konaf:"backup-frequency-days"`
 	Single              RouterInfo   `koanf:"single"`
 	Discovery           Discovery    `koanf:"discovery"`
 	Multi               []RouterInfo `koanf:"multi-router"`
 
 	Logger Log `koanf:"log"`
+
+	ConfigFilePath string
 }
 
 type RouterInfo struct {
@@ -91,7 +94,8 @@ func NewConfig() Config {
 	f.StringVarP(&confFile, "config", "c", "", "configuration yaml file")
 	f.StringVarP(&c.BackupFolder, "backup-dir", "b", "mt-backup", "mikrotik backup export directory")
 	f.StringVarP(&mode, "mode", "m", "single", "mode of operation")
-	f.IntVarP(&c.BackupRetentionDays, "retention-days", "r", 30, "days of retention")
+	f.IntVarP(&c.BackupRetentionDays, "backup-retention-days", "r", 30, "days of retention")
+	f.IntVarP(&c.BackupFrequencyDays, "backup-frequency-days", "", 5, "backup frequency in days")
 
 	f.StringVarP(&c.Single.Host, "single.host", "", "", "the ip address of the router")
 	f.StringVarP(&c.Single.Port, "single.ssh-port", "", "22", "the ssh port of the router")
@@ -139,7 +143,9 @@ func NewConfig() Config {
 
 	return Config{
 		BackupFolder:        k.String("backup-dir"),
-		BackupRetentionDays: k.Int("retention-days"),
+		BackupRetentionDays: k.Int("backup-retention-days"),
+		BackupFrequencyDays: k.Int("backup-frequency-days"),
+		ConfigFilePath:      k.String("config"),
 		Mode:                AvailableModes[k.String("mode")],
 		Single: RouterInfo{
 			Host:     k.String("single.host"),
