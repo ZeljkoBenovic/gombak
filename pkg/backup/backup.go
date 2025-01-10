@@ -165,6 +165,8 @@ func (b *Backup) DeleteTempFiles() error {
 func RunFileCleanup(backupDir string, retentionDays int, log *logger.Logger) error {
 	log.Info("Removing old backup files...")
 
+	//TODO: in case something goes wrong with the backup, we don't want to delete a backup file no matter how old it is.
+	//currently this logic will delete all backups even if new backups are not being done
 	if err := filepath.WalkDir(backupDir, func(path string, d fs.DirEntry, err error) error {
 		if d != nil && d.IsDir() {
 			return nil

@@ -32,7 +32,9 @@ type discoveredHosts struct {
 
 func (d *discoveredHosts) add(hosts map[string]string) {
 	d.mut.Lock()
-	d.hosts = hosts
+	for k, v := range hosts {
+		d.hosts[k] = v
+	}
 	d.mut.Unlock()
 }
 
